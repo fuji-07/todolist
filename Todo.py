@@ -33,11 +33,12 @@ class Model:
         """ Create todolist table if not exists.
         """
 
-        self.cur.execute(f'CREATE TABLE IF NOT EXISTS {Model.TABLENAME}('
-                         'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                         'name TEXT NOT NULL,'
-                         f'status INTEGER CHECK(status={Model.Status.TODO} OR status={Model.Status.FINISHED})'
-                         ')')
+        self.cur.execute(f'''
+                        CREATE TABLE IF NOT EXISTS {Model.TABLENAME}(
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            name TEXT NOT NULL,
+                            status INTEGER CHECK(status={Model.Status.TODO} OR status={Model.Status.FINISHED})
+                        )''')
 
         self.conn.commit()
 
@@ -203,7 +204,10 @@ class Controller:
         """ Change task status and set todo and finished listbox values.
         """
         idx = self.view.todo_listbox.curselection()
-        self.model.finish_task(self.view.todo_listbox.get(idx))
 
-        self.view.set_todo_listbox(self.model.get_todo())
-        self.view.set_finished_listbox(self.model.get_finished())
+        if idx:
+            name = self.view.todo_listbox.get(idx)
+            self.model.finish_task(name)
+
+            self.view.set_todo_listbox(self.model.get_todo())
+            self.view.set_finished_listbox(self.model.get_finished())
