@@ -27,7 +27,6 @@ class Model:
         """ Close database connection.
         """
 
-        print('close')
         self.conn.close()
 
     def __create_table(self) -> None:
@@ -57,59 +56,97 @@ class Model:
         self.cur.execute(sql, (name,))
         self.conn.commit()
 
-    def finish_task(self, name: str) -> None:
+    def finish_task(self, task_id: int) -> None:
         """ Change task status from todo to finished.
 
         Args:
-            name(str): task name
+            task_id(int): task id
 
         Returns:
             None
 
         """
 
-        sql: str = f'UPDATE {Model.TABLENAME} SET status={Model.Status.FINISHED} WHERE name=?'
+        sql: str = f'UPDATE {Model.TABLENAME} SET status={Model.Status.FINISHED} WHERE id=?'
 
-        self.cur.execute(sql, (name,))
+        self.cur.execute(sql, (task_id,))
         self.conn.commit()
 
-    def get_todo(self) -> list:
-        """ Return todo tasklist.
+    def get_todo_ids(self) -> list:
+        """ Return todo task id list.
 
         Returns:
-            todo_list(list): todo tasklist
+            todo_ids(list): todo task id list
 
         """
 
-        todo_list: list = []
+        todo_ids: list = []
+        sql: str = f'SELECT id FROM {Model.TABLENAME} WHERE status={Model.Status.TODO}'
+
+        self.cur.execute(sql)
+        results = self.cur.fetchall()
+
+        for row in results:
+            todo_ids.append(row[0])
+
+        return todo_ids
+
+    def get_todo_names(self) -> list:
+        """ Return todo task name list.
+
+        Returns:
+            todo_names(list): todo task name list
+
+        """
+
+        todo_names: list = []
         sql: str = f'SELECT name FROM {Model.TABLENAME} WHERE status={Model.Status.TODO}'
 
         self.cur.execute(sql)
         results = self.cur.fetchall()
 
         for row in results:
-            todo_list.append(row[0])
+            todo_names.append(row[0])
 
-        return todo_list
+        return todo_names
 
-    def get_finished(self) -> list:
-        """ Return finished tasklist.
+    def get_finished_ids(self) -> list:
+        """ Return finished task id list.
 
         Returns:
-            finished_list(list): finished tasklist
+            finished_ids(list): finished task id list
 
         """
 
-        finished_list: list = []
+        finished_ids: list = []
+        sql: str = f'SELECT id FROM {Model.TABLENAME} WHERE status={Model.Status.FINISHED}'
+
+        self.cur.execute(sql)
+        results = self.cur.fetchall()
+
+        for row in results:
+            finished_ids.append(row[0])
+
+        return finished_ids
+
+    def get_finished_names(self) -> list:
+        """ Return finished taskname list.
+
+        Returns:
+            finished_names(list): finished taskname list
+
+        """
+
+        finished_names: list = []
         sql: str = f'SELECT name FROM {Model.TABLENAME} WHERE status={Model.Status.FINISHED}'
 
         self.cur.execute(sql)
         results = self.cur.fetchall()
 
         for row in results:
-            finished_list.append(row[0])
+            finished_names.append(row)
 
-        return finished_list
+        return finished_names
 
 
 class View(tk.Frame):
@@ -148,7 +185,7 @@ class View(tk.Frame):
         todo_label = tk.Label(todo_frame, text='未完了')
         todo_label.pack()
 
-        self.todo_listbox = tk.Listbox(todo_frame)
+        self.todo_listbox = tk.Listbox(todo_frame, selectmode='single')
         self.todo_listbox.pack()
         # ----------------------
 
@@ -159,7 +196,7 @@ class View(tk.Frame):
         finished_label = tk.Label(finished_frame, text='完了済み')
         finished_label.pack()
 
-        self.finished_listbox = tk.Listbox(finished_frame)
+        self.finished_listbox = tk.Listbox(finished_frame, selectmode='single')
         self.finished_listbox.pack()
         # --------------------------
 
@@ -190,34 +227,51 @@ class Controller:
         self.model = Model()
         self.view = View(win)
 
+        self.todo_list = self.model.get_todo_ids()
+        self.finished_list = self.model.get_finished_ids()
+
         win.protocol('WM_DELETE_WINDOW', self.__window_close)
 
-        self.view.set_todo_listbox(self.model.get_todo())
-        self.view.set_finished_listbox(self.model.get_finished())
+        self.view.set_todo_listbox(self.model.get_todo_names())
+        self.view.set_finished_listbox(self.model.get_finished_names())
 
-        self.view.add_task_button['command'] = self.__add_task_button_clicked
+        self.view.add_task_button['command'] = lambda: self.__add_task(
+            event=None)
+        self.view.task_entry.bind('<Return>', self.__add_task)
+
         self.view.todo_listbox.bind(
-            '<Double-Button-1>', self.__todo_listbox_doubleclick)
+            '<Double-Button-1>', self.__finish_task)
 
-    def __add_task_button_clicked(self) -> None:
+    def __add_task(self, event) -> None:
         """ Add task and set todo listbox value.
         """
-        self.model.add_task(self.view.task_entry.get())
-        self.view.set_todo_listbox(self.model.get_todo())
+        name = self.view.task_entry.get()
+        if name:
+            self.model.add_task(self.view.task_entry.get())
 
-        self.view.task_entry.delete(0, tk.END)
+            self.todo_list = self.model.get_todo_ids()
+            self.view.set_todo_listbox(self.model.get_todo_names())
 
-    def __todo_listbox_doubleclick(self, event) -> None:
+            self.view.task_entry.delete(0, tk.END)
+
+    def __finish_task(self, event) -> None:
         """ Change task status and set todo and finished listbox values.
         """
         idx = self.view.todo_listbox.curselection()
 
+        print(idx)
         if idx:
-            name = self.view.todo_listbox.get(idx)
-            self.model.finish_task(name)
+            idx = idx[0]
+            self.model.finish_task(self.todo_list[idx])
 
-            self.view.set_todo_listbox(self.model.get_todo())
-            self.view.set_finished_listbox(self.model.get_finished())
+            self.todo_list = self.model.get_todo_ids()
+            self.finished_list = self.model.get_finished_ids()
+
+            print(self.todo_list)
+            print(self.finished_list)
+
+            self.view.set_todo_listbox(self.model.get_todo_names())
+            self.view.set_finished_listbox(self.model.get_finished_names())
 
     def __window_close(self):
         """ Close database connection and window.
