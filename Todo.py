@@ -83,7 +83,10 @@ class Model:
         todo_list: list = []
         sql: str = f'SELECT name FROM {Model.TABLENAME} WHERE status={Model.Status.TODO}'
 
-        for row in self.cur.execute(sql):
+        self.cur.execute(sql)
+        results = self.cur.fetchall()
+
+        for row in results:
             todo_list.append(row[0])
 
         return todo_list
@@ -99,7 +102,10 @@ class Model:
         finished_list: list = []
         sql: str = f'SELECT name FROM {Model.TABLENAME} WHERE status={Model.Status.FINISHED}'
 
-        for row in self.cur.execute(sql):
+        self.cur.execute(sql)
+        results = self.cur.fetchall()
+
+        for row in results:
             finished_list.append(row[0])
 
         return finished_list
