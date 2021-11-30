@@ -5,7 +5,7 @@ from tkinter.constants import NO
 
 
 class Model:
-    DBNAME: str = 'todolist.db'
+    DBNAME: str = './todolist.db'
     TABLENAME: str = 'todolist'
 
     class Status(IntEnum):
