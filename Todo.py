@@ -1,51 +1,51 @@
 import tkinter as tk
 import sqlite3
+from enum import IntEnum
 
 
-class Status:
-    TODO: int = 0
-    FINISHED: int = 1
-
-
-class TodoModel:
+class Model:
     DBNAME: str = 'todolist.db'
     TABLENAME: str = 'todolist'
+
+    class Status(IntEnum):
+        TODO = 0
+        FINISHED = 1
 
     def __init__(self) -> None:
         self.__open_database()
         self.__create_table()
 
     def __open_database(self) -> None:
-        self.conn: sqlite3.Connection = sqlite3.connect(TodoModel.DBNAME)
+        self.conn: sqlite3.Connection = sqlite3.connect(Model.DBNAME)
         self.cur: sqlite3.Cursor = self.conn.cursor()
 
     def close_database(self) -> None:
         self.conn.close()
 
     def __create_table(self) -> None:
-        self.cur.execute(f'CREATE TABLE IF NOT EXISTS {TodoModel.TABLENAME}('
+        self.cur.execute(f'CREATE TABLE IF NOT EXISTS {Model.TABLENAME}('
                          'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                          'name TEXT NOT NULL,'
-                         f'status INTEGER CHECK(status={Status.TODO} OR status={Status.FINISHED})'
+                         f'status INTEGER CHECK(status={Model.Status.TODO} OR status={Model.Status.FINISHED})'
                          ')')
 
         self.conn.commit()
 
     def add_todo(self, name: str) -> None:
-        sql: str = f'INSERT INTO {TodoModel.TABLENAME}(name, status) VALUES(?, {Status.TODO})'
+        sql: str = f'INSERT INTO {Model.TABLENAME}(name, status) VALUES(?, {Model.Status.TODO})'
 
         self.cur.execute(sql, (name,))
         self.conn.commit()
 
     def finish_todo(self, name: str) -> None:
-        sql: str = f'UPDATE {TodoModel.TABLENAME} SET status={Status.FINISHED} WHERE name=?'
+        sql: str = f'UPDATE {Model.TABLENAME} SET status={Model.Status.FINISHED} WHERE name=?'
 
         self.cur.execute(sql, (name,))
         self.conn.commit()
 
     def get_todo(self) -> list:
         todo_list: list = []
-        sql: str = f'SELECT name FROM {TodoModel.TABLENAME} WHERE status={Status.TODO}'
+        sql: str = f'SELECT name FROM {Model.TABLENAME} WHERE status={Model.Status.TODO}'
 
         for row in self.cur.execute(sql):
             todo_list.append(row[0])
@@ -54,7 +54,7 @@ class TodoModel:
 
     def get_finished(self) -> list:
         finished_list: list = []
-        sql: str = f'SELECT name FROM {TodoModel.TABLENAME} WHERE status={Status.FINISHED}'
+        sql: str = f'SELECT name FROM {Model.TABLENAME} WHERE status={Model.Status.FINISHED}'
 
         for row in self.cur.execute(sql):
             finished_list.append(row[0])
@@ -62,7 +62,7 @@ class TodoModel:
         return tuple(finished_list)
 
 
-class TodoView(tk.Frame):
+class View(tk.Frame):
 
     def __init__(self, master=None) -> None:
         super().__init__(master)
@@ -106,19 +106,36 @@ class TodoView(tk.Frame):
         self.finished_listbox = tk.Listbox(finished_frame)
         self.finished_listbox.pack()
 
-    def init_todo_listbox(self, todo_list: list) -> None:
+    def set_todo_listbox(self, todo_list: list) -> None:
         var = tk.StringVar(value=todo_list)
         self.todo_listbox.config(listvariable=var)
 
-    def init_finished_listbox(self, finished_list: list) -> None:
+    def set_finished_listbox(self, finished_list: list) -> None:
         var = tk.StringVar(value=finished_list)
         self.finished_listbox.config(listvariable=var)
 
 
-class TodoController:
+class Controller:
     def __init__(self, win) -> None:
-        self.model = TodoModel()
-        self.view = TodoView(win)
+        self.model = Model()
+        self.view = View(win)
 
-        self.view.init_todo_listbox(self.model.get_todo())
-        self.view.init_finished_listbox(self.model.get_finished())
+        self.view.set_todo_listbox(self.model.get_todo())
+        self.view.set_finished_listbox(self.model.get_finished())
+
+        self.view.add_todo_button['command'] = self.__add_todo_button_clicked
+        self.view.todo_listbox.bind(
+            '<Double-Button-1>', self.__todo_listbox_doubleclick)
+
+    def __add_todo_button_clicked(self):
+        self.model.add_todo(self.view.todo_entry.get())
+        self.view.set_todo_listbox(self.model.get_todo())
+
+        self.view.todo_entry.delete(0, tk.END)
+
+    def __todo_listbox_doubleclick(self, event):
+        idx = self.view.todo_listbox.curselection()
+        self.model.finish_todo(self.view.todo_listbox.get(idx))
+
+        self.view.set_todo_listbox(self.model.get_todo())
+        self.view.set_finished_listbox(self.model.get_finished())

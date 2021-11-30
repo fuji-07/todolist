@@ -2,5 +2,6 @@ import Todo as td
 import tkinter as tk
 
 win = tk.Tk()
-tdctrl = td.TodoController(win)
+tdctrl = td.Controller(win)
+win.resizable(width=False, height=False)
 win.mainloop()
