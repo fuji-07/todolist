@@ -259,16 +259,12 @@ class Controller:
         """
         idx = self.view.todo_listbox.curselection()
 
-        print(idx)
         if idx:
             idx = idx[0]
             self.model.finish_task(self.todo_list[idx])
 
             self.todo_list = self.model.get_todo_ids()
             self.finished_list = self.model.get_finished_ids()
-
-            print(self.todo_list)
-            print(self.finished_list)
 
             self.view.set_todo_listbox(self.model.get_todo_names())
             self.view.set_finished_listbox(self.model.get_finished_names())
