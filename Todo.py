@@ -27,6 +27,7 @@ class Model:
         """ Close database connection.
         """
 
+        print('close')
         self.conn.close()
 
     def __create_table(self) -> None:
@@ -189,6 +190,8 @@ class Controller:
         self.model = Model()
         self.view = View(win)
 
+        win.protocol('WM_DELETE_WINDOW', self.__window_close)
+
         self.view.set_todo_listbox(self.model.get_todo())
         self.view.set_finished_listbox(self.model.get_finished())
 
@@ -215,3 +218,9 @@ class Controller:
 
             self.view.set_todo_listbox(self.model.get_todo())
             self.view.set_finished_listbox(self.model.get_finished())
+
+    def __window_close(self):
+        """ Close database connection and window.
+        """
+        self.model.close_database()
+        self.view.master.destroy()
