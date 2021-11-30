@@ -5,7 +5,7 @@ from tkinter.constants import NO
 
 
 class Model:
-    DBNAME: str = './todolist.db'
+    DBNAME: str = './db/todolist.db'
     TABLENAME: str = 'todolist'
 
     class Status(IntEnum):
@@ -39,8 +39,6 @@ class Model:
                             name TEXT NOT NULL,
                             status INTEGER CHECK(status={Model.Status.TODO} OR status={Model.Status.FINISHED})
                         )''')
-
-        self.conn.commit()
 
     def add_task(self, name: str) -> None:
         """ Add task to todolist table.
